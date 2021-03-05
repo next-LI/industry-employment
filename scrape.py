@@ -33,16 +33,16 @@ industry_level = '3'
 failed = []
 
 Path("industries").mkdir(parents=True, exist_ok=True)
-r = requests.post(url, data={
-    'PASS': '2',
-    'codename': '23035004',
-    'submit': 'Submit'
-})
 
-soup = BeautifulSoup(r.text, 'html.parser')
 industries = {}
 
 while not industries:
+    r = requests.post(url, data={
+        'PASS': '2',
+        'codename': '23035004',
+        'submit': 'Submit'
+    })
+    soup = BeautifulSoup(r.text, 'html.parser')
     print('industries blank, trying to fetch them')
     options = soup.find_all('option')
     for option in options[1:]:
