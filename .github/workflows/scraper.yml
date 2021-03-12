@@ -2,7 +2,7 @@ name: scrape NY DOL
 
 on: [push]
     schedule:
-    - cron: "9 2 * * 1" #runs at 02:09 UTC every Monday
+      - cron: "9 2 * * 1" #runs at 02:09 UTC every Monday
 
 jobs:
   build:
