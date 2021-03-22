@@ -25,7 +25,7 @@ def slugify(value, allow_unicode=False):
     return re.sub(r'[-\s]+', '-', value).strip('-_')
 
 
-url = 'https://labor.ny.gov/stats/cesemp.asp'
+url = 'https://statistics.labor.ny.gov/cesemp.asp'
 LI = '23035004'
 overall_level = '1'
 check_industry = '2'
@@ -42,6 +42,11 @@ while not industries:
         'codename': '23035004',
         'submit': 'Submit'
     })
+
+    print(url)
+    print(r)
+    print(r.text)
+
     soup = BeautifulSoup(r.text, 'html.parser')
     print('industries blank, trying to fetch them')
     options = soup.find_all('option')
