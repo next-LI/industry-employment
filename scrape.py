@@ -24,53 +24,82 @@ def slugify(value, allow_unicode=False):
     value = re.sub(r'[^\w\s-]', '', value.lower())
     return re.sub(r'[-\s]+', '-', value).strip('-_')
 
+def grab_data(url, params):
+    r = requests.post(url, data=params)
+    soup = BeautifulSoup(r.text, 'html.parser')
 
-url = 'https://statistics.labor.ny.gov/cesemp.asp'
-LI = '23035004'
-overall_level = '1'
-check_industry = '2'
-industry_level = '3'
-failed = []
+    return soup
+
+def save_data(soup, fname):
+    df = pd.read_html(str(soup), header=0, flavor='bs4', skiprows=[1])
+    df[0] = df[0].dropna(how='all')
+    df[0].to_csv('industries/'+fname+'.csv', index=False)         
+
+
+# url = 'https://statistics.labor.ny.gov/cesemp.asp'
+# LI = '23035004'
+# old URL phased out
+
+url = 'https://statistics.labor.ny.gov/ins.asp'
+LI = '01000036'
 
 Path("industries").mkdir(parents=True, exist_ok=True)
 
 industries = {}
 
 while not industries:
-    r = requests.post(url, data={
-        'PASS': '2',
-        'codename': '23035004',
-        'submit': 'Submit'
+    soup = grab_data(url, {
+        'term': '1',
+        'geog': LI,
+        'submit': 'Go to Step 2'
     })
 
-    print(url)
-    print(r)
-    print(r.text)
-
-    soup = BeautifulSoup(r.text, 'html.parser')
-    print('industries blank, trying to fetch them')
     options = soup.find_all('option')
     for option in options[1:]:
         industries[option.text] = option['value']
-
-print(industries)
 
 while len(industries) != 0:
     print('industries not blank, meaning we need to scrape')
     for key in list(industries):
         fname = slugify(key)
 
-        page_data = requests.post(url, data={
-            'PASS': industry_level,
-            'codename': LI,
-            'seriescode': industries[key]
+        soup = grab_data(url, {
+            'term': '2',
+            'geog': LI,
+            'sect': industries[key],
+            'submit': 'Go to Step 3'
         })
-        try:
-            df = pd.read_html(page_data.text, header=0,
-                              flavor='bs4', skiprows=[1])
-            print(df[0])
-            df[0].to_csv('industries/'+fname+'.csv', index=False)
-            print('removing completed industry')
-            del industries[key]
-        except:
-            pass
+        
+        sub_industries = {}
+        options_sub = soup.find_all('option')
+        
+        for option in options_sub[1:]:
+            sub_industries[option.text] = option['value']
+
+        page_data = grab_data(url, {
+            'term': '3',
+            'geog': LI,
+            'sect': industries[key],
+            'periods': '999999',
+            'ind': industries[key],
+            'submit': 'Go to Step 4'
+        })
+
+        save_data(page_data, fname)
+
+        if len(sub_industries) != 0:
+            for sub in list(sub_industries):
+                print(sub)
+                fname = slugify(sub)
+                page_data = grab_data(url, {
+                    'term': '3',
+                    'geog': LI,
+                    'sect': industries[key],
+                    'periods': '999999',
+                    'ind': industries[key],
+                    'submit': 'Go to Step 4'
+                })
+
+                save_data(page_data, fname)                                
+        
+        del industries[key]
